@@ -126,7 +126,7 @@
 
 <script>
 
-function sendMessage() {
+async function sendMessage() {
 
     const input = document.getElementById("message");
     const chat = document.getElementById("chat");
@@ -136,26 +136,44 @@ function sendMessage() {
     if (!message) return;
 
     const userMessage = document.createElement("div");
-
     userMessage.className = "message user";
-
     userMessage.textContent = message;
-
     chat.appendChild(userMessage);
 
     input.value = "";
 
     const aiMessage = document.createElement("div");
-
     aiMessage.className = "message ai";
-
-    aiMessage.textContent =
-        "I received your request. My Web3 intelligence engine isn't connected yet. That is the next stage.";
-
+    aiMessage.textContent = "Thinking...";
     chat.appendChild(aiMessage);
 
+    try {
+
+        const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Request failed");
+        }
+
+        aiMessage.textContent = data.answer;
+
+    } catch (error) {
+
+        aiMessage.textContent =
+            "Something went wrong: " + error.message;
+
+    }
+
     chat.scrollTop = chat.scrollHeight;
-}
+            }
 
 </script>
 
