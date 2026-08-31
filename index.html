@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web3 Dark AI</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #080808;
+            color: white;
+        }
+
+        .app {
+            max-width: 700px;
+            margin: auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 20px;
+            border-bottom: 1px solid #222;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        header p {
+            color: #888;
+            margin-bottom: 0;
+        }
+
+        #chat {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .message {
+            padding: 14px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            line-height: 1.5;
+        }
+
+        .ai {
+            background: #151515;
+        }
+
+        .user {
+            background: #202020;
+            text-align: right;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            border-top: 1px solid #222;
+            position: sticky;
+            bottom: 0;
+            background: #080808;
+        }
+
+        input {
+            flex: 1;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            background: #111;
+            color: white;
+            outline: none;
+        }
+
+        button {
+            padding: 14px 18px;
+            border: none;
+            border-radius: 10px;
+            background: white;
+            color: black;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <header>
+        <h1>⚫ Web3 Dark AI</h1>
+        <p>Web3 intelligence • Research • On-chain analysis</p>
+    </header>
+
+    <div id="chat">
+
+        <div class="message ai">
+            I'm ready. Ask me about a crypto project, token, wallet,
+            protocol, or Web3 topic.
+        </div>
+
+    </div>
+
+    <div class="input-area">
+        <input
+            id="message"
+            type="text"
+            placeholder="Ask your Web3 AI..."
+        >
+
+        <button onclick="sendMessage()">
+            Send
+        </button>
+    </div>
+
+</div>
+
+<script>
+
+function sendMessage() {
+
+    const input = document.getElementById("message");
+    const chat = document.getElementById("chat");
+
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    const userMessage = document.createElement("div");
+
+    userMessage.className = "message user";
+
+    userMessage.textContent = message;
+
+    chat.appendChild(userMessage);
+
+    input.value = "";
+
+    const aiMessage = document.createElement("div");
+
+    aiMessage.className = "message ai";
+
+    aiMessage.textContent =
+        "I received your request. My Web3 intelligence engine isn't connected yet. That is the next stage.";
+
+    chat.appendChild(aiMessage);
+
+    chat.scrollTop = chat.scrollHeight;
+}
+
+</script>
+
+</body>
+</html>
