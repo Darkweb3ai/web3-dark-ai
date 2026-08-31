@@ -11,33 +11,18 @@ export default async function handler(req, res) {
     }
 
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" +
-        process.env.GEMINI_API_KEY,
+      "https://generativelanguage.googleapis.com/v1beta/interactions",
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "x-goog-api-key": process.env.GEMINI_API_KEY
         },
         body: JSON.stringify({
-          system_instruction: {
-            parts: [
-              {
-                text: `You are Web3 Dark AI, a direct and highly analytical Web3 intelligence assistant.
-
-Your specialties include cryptocurrency, blockchain, DeFi, NFTs, smart contracts, wallets and Web3 research.
-
-Be honest about uncertainty. Never invent facts or pretend to have live blockchain data when you do not have it.
-
-Your personality is dark, confident, skeptical and direct, but you must not assist with fraud, theft, credential theft, malware, or other harmful or illegal activity.`
-              }
-            ]
-          },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: message }]
-            }
-          ]
+          model: "gemini-3.5-flash-lite",
+          input: message,
+          system_instruction:
+            "You are Web3 Dark AI, a direct, analytical Web3 intelligence assistant. You specialize in cryptocurrency, blockchain, DeFi, NFTs, smart contracts, wallets and Web3 research. Be skeptical, precise and honest about uncertainty. Never invent live blockchain data. Do not assist with fraud, theft, credential theft, malware or other harmful or illegal activity."
         })
       }
     );
@@ -51,14 +36,19 @@ Your personality is dark, confident, skeptical and direct, but you must not assi
     }
 
     const answer =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      data.output_text ||
+      data.steps?.find(
+        step => step.type === "model_output"
+      )?.content?.find(
+        item => item.type === "text"
+      )?.text ||
       "I couldn't generate a response.";
 
     return res.status(200).json({ answer });
 
   } catch (error) {
     return res.status(500).json({
-      error: "Server error"
+      error: error.message || "Server error"
     });
   }
 }
