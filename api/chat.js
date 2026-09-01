@@ -10,7 +10,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Message is required" });
     }
 
-    // Find a Solana wallet address anywhere in the message.
     const walletMatch = message.match(
       /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/
     );
@@ -22,7 +21,7 @@ export default async function handler(req, res) {
 
       const rpc = async (method, params) => {
         const response = await fetch(
-          "https://api.mainnet-beta.solana.com",
+          "https://api.mainnet.solana.com",
           {
             method: "POST",
             headers: {
@@ -40,20 +39,21 @@ export default async function handler(req, res) {
         return await response.json();
       };
 
-      // 1. SOL BALANCE
+      // SOL BALANCE
       const balanceData = await rpc(
         "getBalance",
-        [wallet]
+        [wallet, { commitment: "finalized" }]
       );
 
-      let solBalance = null;
+      const lamports =
+        balanceData.result?.value ?? null;
 
-      if (balanceData.result?.value !== undefined) {
-        solBalance =
-          balanceData.result.value / 1000000000;
-      }
+      const solBalance =
+        lamports !== null
+          ? lamports / 1000000000
+          : null;
 
-      // 2. TOKEN ACCOUNTS
+      // TOKEN ACCOUNTS
       const tokenData = await rpc(
         "getTokenAccountsByOwner",
         [
@@ -63,7 +63,8 @@ export default async function handler(req, res) {
               "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
           },
           {
-            encoding: "jsonParsed"
+            encoding: "jsonParsed",
+            commitment: "finalized"
           }
         ]
       );
@@ -76,50 +77,116 @@ export default async function handler(req, res) {
           const info =
             account.account?.data?.parsed?.info;
 
-          const tokenAmount =
+          const amount =
             info?.tokenAmount;
 
           return {
             mint: info?.mint || "Unknown",
             amount:
-              tokenAmount?.uiAmountString || "0",
+              amount?.uiAmountString || "0",
             decimals:
-              tokenAmount?.decimals ?? 0
+              amount?.decimals ?? 0
           };
         })
         .filter(
-          (token) =>
-            token.amount !== "0"
+          (token) => token.amount !== "0"
         );
 
-      // 3. RECENT TRANSACTIONS
-      const transactionData = await rpc(
+      // RECENT TRANSACTION SIGNATURES
+      const signatureData = await rpc(
         "getSignaturesForAddress",
         [
           wallet,
           {
-            limit: 10
+            limit: 10,
+            commitment: "finalized"
           }
         ]
       );
 
-      const transactions =
-        transactionData.result || [];
+      const signatures =
+        signatureData.result || [];
 
-      const recentTransactions =
-        transactions.map((tx) => ({
-          signature: tx.signature,
+      // FETCH ACTUAL TRANSACTION DETAILS
+      const transactionDetails = [];
+
+      for (const item of signatures) {
+        const txData = await rpc(
+          "getTransaction",
+          [
+            item.signature,
+            {
+              encoding: "jsonParsed",
+              commitment: "finalized",
+              maxSupportedTransactionVersion: 1
+            }
+          ]
+        );
+
+        const tx = txData.result;
+
+        if (!tx) {
+          transactionDetails.push({
+            signature: item.signature,
+            status:
+              item.err === null
+                ? "SUCCESS"
+                : "FAILED",
+            details:
+              "Transaction details unavailable"
+          });
+
+          continue;
+        }
+
+        const accountKeys =
+          tx.transaction?.message?.accountKeys || [];
+
+        const programs =
+          accountKeys
+            .map((account) => {
+              if (typeof account === "string") {
+                return account;
+              }
+
+              return account.pubkey;
+            })
+            .filter(Boolean);
+
+        transactionDetails.push({
+          signature: item.signature,
+
           status:
-            tx.err === null
+            item.err === null
               ? "SUCCESS"
               : "FAILED",
+
           blockTime:
             tx.blockTime
               ? new Date(
                   tx.blockTime * 1000
                 ).toISOString()
-              : null
-        }));
+              : null,
+
+          slot: tx.slot,
+
+          feeLamports:
+            tx.meta?.fee ?? null,
+
+          feeSOL:
+            tx.meta?.fee !== undefined
+              ? tx.meta.fee / 1000000000
+              : null,
+
+          programsInteractedWith:
+            programs.slice(-10),
+
+          logMessages:
+            tx.meta?.logMessages
+              ? tx.meta.logMessages.slice(0, 20)
+              : []
+        });
+      }
 
       liveWeb3Data = `
 VERIFIED LIVE SOLANA DATA
@@ -131,13 +198,14 @@ Wallet:
 ${wallet}
 
 SOL Balance:
-${solBalance !== null ? solBalance : "Unable to retrieve"}
+${solBalance !== null
+  ? solBalance
+  : "Unable to retrieve"}
 
 Lamports:
-${
-  balanceData.result?.value ??
-  "Unable to retrieve"
-}
+${lamports !== null
+  ? lamports
+  : "Unable to retrieve"}
 
 Non-zero SPL Token Accounts:
 ${tokens.length}
@@ -145,12 +213,12 @@ ${tokens.length}
 Token Holdings:
 ${JSON.stringify(tokens, null, 2)}
 
-Recent Transaction Count Retrieved:
-${recentTransactions.length}
+Recent Transactions Retrieved:
+${transactionDetails.length}
 
-Recent Transactions:
+Transaction Details:
 ${JSON.stringify(
-  recentTransactions,
+  transactionDetails,
   null,
   2
 )}
@@ -159,26 +227,28 @@ Data Source:
 Solana Mainnet RPC
 
 IMPORTANT:
-This information was retrieved directly from
-the Solana blockchain RPC endpoint.
-Treat these values as verified retrieved data.
+This information was retrieved from the Solana
+blockchain RPC.
+
 Do not invent missing information.
 `;
 
     } else {
       liveWeb3Data = `
-No Solana wallet address was detected in the user's message.
+No Solana wallet address was detected.
 
-Answer the user's question normally.
-If they want a wallet investigation, ask them
-to provide a public Solana wallet address.
+If the user wants a wallet investigation,
+ask for a PUBLIC Solana wallet address.
 
-Never ask for or accept a seed phrase,
-private key, password, or recovery phrase.
+Never request:
+- seed phrases
+- private keys
+- passwords
+- recovery phrases
 `;
     }
 
-    // Send the blockchain evidence to Gemini.
+    // GEMINI ANALYSIS
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/interactions",
       {
@@ -203,61 +273,55 @@ ${liveWeb3Data}
           system_instruction: `
 You are Web3 Dark AI.
 
-You are a direct, analytical Web3 intelligence assistant specializing in:
+You are a direct and analytical Web3 intelligence
+assistant specializing in:
 
 - cryptocurrency
 - blockchain
 - Solana
 - DeFi
-- smart contracts
 - wallets
 - tokens
+- smart contracts
 - Web3 infrastructure
 
-Your job is to analyze verified blockchain evidence
-and explain it clearly.
+Analyze the supplied blockchain evidence.
 
-IMPORTANT RULES:
+Separate your answer into:
 
-1. Never invent blockchain data.
+1. VERIFIED FACTS
+2. OBSERVABLE ACTIVITY
+3. TRANSACTION ANALYSIS
+4. POSSIBLE INTERPRETATIONS
+5. LIMITATIONS
+6. CONCLUSION
 
-2. Clearly distinguish:
-   - verified blockchain facts
-   - reasonable interpretations
-   - speculation
+Important:
 
-3. A low SOL balance does NOT automatically mean
-   a wallet is inactive.
+Never invent blockchain data.
 
-4. Token accounts may exist even when SOL balance
-   is low.
+Do not claim to know the identity or intent of a
+wallet owner from blockchain data alone.
 
-5. Do not claim that a wallet is a scammer,
-   hacker, whale, bot, or criminal based only on
-   limited blockchain information.
+Do not automatically label an address as a scammer,
+hacker, bot, whale, or criminal.
 
-6. When transaction data is available, explain:
-   - number of transactions retrieved
-   - successful vs failed transactions
-   - recency
-   - observable activity patterns
+If a program address appears, identify it only when
+the available evidence supports the identification.
 
-7. When token data is available, list important
-   token holdings using the mint addresses provided.
+Explain transaction fees when available.
 
-8. If the available data is insufficient for a
-   conclusion, explicitly say so.
+Explain which programs appear in the transaction
+data, but distinguish program interaction from user
+intent.
 
-9. NEVER request a user's:
-   - seed phrase
-   - private key
-   - password
-   - recovery phrase
+If the evidence is insufficient, say so.
 
-10. You may analyze PUBLIC blockchain addresses.
+Never request private keys, seed phrases,
+passwords, or recovery phrases.
 
-Use the following verified blockchain data
-when it is provided:
+The blockchain data supplied below is the source
+of truth for this investigation:
 
 ${liveWeb3Data}
 `
@@ -302,4 +366,4 @@ ${liveWeb3Data}
         "Server error"
     });
   }
-        }
+  }
