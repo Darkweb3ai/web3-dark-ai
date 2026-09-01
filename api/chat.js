@@ -32,22 +32,67 @@ function extractAddress(message) {
   return matches.find(isSolanaAddress) || null;
 }
 
-async function analyzeToken(mint) {
+async function rpc(method, params) {
+  try {
+    const response = await fetch(RPC_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method,
+        params
+      })
+    });
 
-  const [
-    accountInfo,
-    supplyInfo,
-    largestInfo,
-    dexResponse
-  ] = await Promise.all([
+    const text = await response.text();
 
-    rpc("getAccountInfo", [
-      mint,
-      {
-        encoding: "jsonParsed",
-        commitment: "finalized"
+    if (!response.ok) {
+      console.error(
+        "Solana RPC error:",
+        response.status,
+        text.slice(0, 300)
+      );
+
+      return {
+        error: {
+          message: `Solana RPC returned HTTP ${response.status}`
+        }
+      };
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.error(
+        "Solana RPC returned non-JSON:",
+        text.slice(0, 300)
+      );
+
+      return {
+        error: {
+          message: "Solana RPC returned an invalid response"
+        }
+      };
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Solana RPC request failed:",
+      error.message
+    );
+
+    return {
+      error: {
+        message: error.message
       }
-    ]),
+    };
+  }
+}
 
     rpc("getTokenSupply", [
       mint,
