@@ -64,10 +64,42 @@ async function analyzeToken(mint) {
     ]),
 
     fetch(
-      `${DEX_URL}/latest/dex/tokens/${mint}`
-    ).then(r => r.json()).catch(() => null)
+  `${DEX_URL}/tokens/v1/solana/${mint}`,
+  {
+    headers: {
+      "Accept": "application/json"
+    }
+  }
+)
+  .then(async (r) => {
+    const text = await r.text();
 
-  ]);
+    if (!r.ok) {
+      console.error(
+        "DEX Screener error:",
+        r.status,
+        text.slice(0, 200)
+      );
+      return null;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.error(
+        "DEX Screener returned non-JSON:",
+        text.slice(0, 200)
+      );
+      return null;
+    }
+  })
+  .catch((error) => {
+    console.error(
+      "DEX Screener request failed:",
+      error.message
+    );
+    return null;
+  })
 
   const parsed =
     accountInfo?.result?.value?.data?.parsed?.info || {};
