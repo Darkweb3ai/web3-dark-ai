@@ -125,7 +125,42 @@
 </div>
 
 <script>
+// ===============================
+// LOCAL CHAT HISTORY
+// ===============================
 
+let chatHistory = JSON.parse(
+    localStorage.getItem("web3DarkAI_history") || "[]"
+);
+
+function saveChatHistory() {
+    localStorage.setItem(
+        "web3DarkAI_history",
+        JSON.stringify(chatHistory)
+    );
+}
+
+function loadChatHistory() {
+    const chat = document.getElementById("chat");
+
+    if (!chat) return;
+
+    chatHistory.forEach((item) => {
+        const message = document.createElement("div");
+
+        message.className =
+            item.role === "user"
+                ? "message user"
+                : "message ai";
+
+        message.textContent = item.content;
+
+        chat.appendChild(message);
+    });
+
+    chat.scrollTop = chat.scrollHeight;
+}
+window.addEventListener("load", loadChatHistory);
 async function sendMessage() {
     const input = document.getElementById("message");
     const chat = document.getElementById("chat");
@@ -138,7 +173,12 @@ async function sendMessage() {
     userMessage.className = "message user";
     userMessage.textContent = message;
     chat.appendChild(userMessage);
+chatHistory.push({
+    role: "user",
+    content: message
+});
 
+saveChatHistory();
     input.value = "";
 
     const aiMessage = document.createElement("div");
@@ -186,7 +226,12 @@ async function sendMessage() {
         }
 
         aiMessage.textContent = data.answer;
+chatHistory.push({
+    role: "assistant",
+    content: data.answer
+});
 
+saveChatHistory();
     } catch (error) {
         aiMessage.textContent =
             "Something went wrong: " +
