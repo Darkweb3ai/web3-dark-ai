@@ -127,7 +127,6 @@
 <script>
 
 async function sendMessage() {
-
     const input = document.getElementById("message");
     const chat = document.getElementById("chat");
 
@@ -147,33 +146,55 @@ async function sendMessage() {
     aiMessage.textContent = "Thinking...";
     chat.appendChild(aiMessage);
 
-    try {
+    // Get the conversation currently visible in the browser
+    const messages = [];
 
+    chat.querySelectorAll(".message").forEach((element) => {
+        const role = element.classList.contains("user")
+            ? "user"
+            : "assistant";
+
+        const content = element.textContent;
+
+        // Don't send the temporary "Thinking..." message
+        if (content !== "Thinking...") {
+            messages.push({
+                role: role,
+                content: content
+            });
+        }
+    });
+
+    try {
         const response = await fetch("/api/chat", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({
+                message: message,
+                history: messages.slice(0, -1)
+            })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || "Request failed");
+            throw new Error(
+                data.error || "Request failed"
+            );
         }
 
         aiMessage.textContent = data.answer;
 
     } catch (error) {
-
         aiMessage.textContent =
-            "Something went wrong: " + error.message;
-
+            "Something went wrong: " +
+            error.message;
     }
 
     chat.scrollTop = chat.scrollHeight;
-            }
+    }
 
 </script>
 
