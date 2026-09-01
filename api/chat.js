@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message } = req.body;
+    const { message, history = [] } = req.body;
 
     if (!message || !message.trim()) {
       return res.status(400).json({ error: "Message is required" });
@@ -264,12 +264,19 @@ Never request:
           model: "gemini-3.5-flash-lite",
 
           input: `
-USER REQUEST:
+CONVERSATION HISTORY:
+${history
+  .map(
+    (item) =>
+      `${item.role.toUpperCase()}: ${item.content}`
+  )
+  .join("\n")}
+
+CURRENT USER REQUEST:
 ${message}
 
 ${liveWeb3Data}
 `,
-
           system_instruction: `
 You are Web3 Dark AI, a general-purpose AI assistant with
 advanced Web3 and blockchain intelligence capabilities.
