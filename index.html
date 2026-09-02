@@ -89,11 +89,25 @@
             color: black;
             font-weight: bold;
         }
+        .new-chat-btn {
+    background: #111;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    margin: 12px;
+}
+
+.new-chat-btn:hover {
+    background: #222;
+}
     </style>
 </head>
 
 <body>
-<button onclick="startNewChat()">New Chat</button>
+<button class="new-chat-btn" onclick="startNewChat()">New Chat</button>
 <div class="app">
 
     <header>
