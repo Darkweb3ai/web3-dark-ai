@@ -93,7 +93,7 @@
 </head>
 
 <body>
-
+<button onclick="startNewChat()">New Chat</button>
 <div class="app">
 
     <header>
@@ -161,6 +161,13 @@ function loadChatHistory() {
     chat.scrollTop = chat.scrollHeight;
 }
 window.addEventListener("load", loadChatHistory);
+    function startNewChat() {
+    localStorage.removeItem("web3DarkAI_history");
+    chatHistory = [];
+
+    const chat = document.getElementById("chat");
+    chat.innerHTML = "";
+    }
 async function sendMessage() {
     const input = document.getElementById("message");
     const chat = document.getElementById("chat");
