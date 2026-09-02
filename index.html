@@ -136,8 +136,26 @@ right: 20px;
     <div id="chat">
 
         <div class="message ai">
-            I'm ready. Ask me about a crypto project, token, wallet,
-            protocol, or Web3 topic.
+    I'm ready. Ask me anything.
+
+    <div class="suggestions">
+        <button onclick="useSuggestion('Analyze a Solana wallet')">
+            Analyze a Solana wallet
+        </button>
+
+        <button onclick="useSuggestion('Explain crypto to me simply')">
+            Explain crypto simply
+        </button>
+
+        <button onclick="useSuggestion('Help me write some code')">
+            Help me code
+        </button>
+
+        <button onclick="useSuggestion('What can you help me with?')">
+            What can you help me with?
+        </button>
+    </div>
+</div>
         </div>
 
     </div>
@@ -192,6 +210,12 @@ function loadChatHistory() {
 
     chat.scrollTop = chat.scrollHeight;
 }
+    function useSuggestion(text) {
+    const input = document.getElementById("message");
+
+    input.value = text;
+    sendMessage();
+    }
 window.addEventListener("load", loadChatHistory);
     function startNewChat() {
     localStorage.removeItem("web3DarkAI_history");
