@@ -332,7 +332,13 @@ aiMessage.classList.add("thinking");
             );
         }
 
-        aiMessage.textContent = data.answer;
+        aiMessage.innerHTML = data.answer
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/^### (.*)$/gm, "<h3>$1</h3>")
+    .replace(/^## (.*)$/gm, "<h2>$1</h2>")
+    .replace(/^# (.*)$/gm, "<h1>$1</h1>")
+    .replace(/^\* (.*)$/gm, "• $1")
+    .replace(/^- (.*)$/gm, "• $1");
         aiMessage.classList.remove("thinking");
 chatHistory.push({
     role: "assistant",
