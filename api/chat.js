@@ -124,6 +124,7 @@ export default async function handler(req, res) {
         );
 
         const tx = txData.result;
+        const tx = txData.result;
 
         if (!tx) {
           transactionDetails.push({
@@ -132,6 +133,7 @@ export default async function handler(req, res) {
               item.err === null
                 ? "SUCCESS"
                 : "FAILED",
+                      solChange: solChange,
             details:
               "Transaction details unavailable"
           });
@@ -142,51 +144,29 @@ export default async function handler(req, res) {
         const accountKeys =
           tx.transaction?.message?.accountKeys || [];
 
-        const programs =
-          accountKeys
-            .map((account) => {
-              if (typeof account === "string") {
-                return account;
-              }
+        let solChange = null;
 
-              return account.pubkey;
-            })
-            .filter(Boolean);
+        if (
+          tx.meta?.preBalances &&
+          tx.meta?.postBalances
+        ) {
+          const walletIndex =
+            accountKeys.findIndex((account) => {
+              const pubkey =
+                typeof account === "string"
+                  ? account
+                  : account.pubkey;
 
-        transactionDetails.push({
-          signature: item.signature,
+              return pubkey === wallet;
+            });
 
-          status:
-            item.err === null
-              ? "SUCCESS"
-              : "FAILED",
-
-          blockTime:
-            tx.blockTime
-              ? new Date(
-                  tx.blockTime * 1000
-                ).toISOString()
-              : null,
-
-          slot: tx.slot,
-
-          feeLamports:
-            tx.meta?.fee ?? null,
-
-          feeSOL:
-            tx.meta?.fee !== undefined
-              ? tx.meta.fee / 1000000000
-              : null,
-
-          programsInteractedWith:
-            programs.slice(-10),
-
-          logMessages:
-            tx.meta?.logMessages
-              ? tx.meta.logMessages.slice(0, 20)
-              : []
-        });
-      }
+          if (walletIndex !== -1) {
+            solChange =
+              (tx.meta.postBalances[walletIndex] -
+                tx.meta.preBalances[walletIndex]) /
+              1000000000;
+          }
+        }
 
       liveWeb3Data = `
 VERIFIED LIVE SOLANA DATA
